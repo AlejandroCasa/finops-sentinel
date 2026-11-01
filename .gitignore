@@ -1,0 +1,10 @@
+# Python & environments
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.coverage
+
+# Antigravity & IDEs
+.antigravity/cache/
+.vscode/
