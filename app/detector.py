@@ -1,7 +1,7 @@
 """In-memory anomaly detection engine for cloud cost telemetry."""
 
-from collections import defaultdict
-from typing import DefaultDict, List
+from collections import defaultdict, deque
+from typing import DefaultDict, Deque, List
 
 from app.schemas import AnomalyReport, CostRecord
 
@@ -11,10 +11,13 @@ class AnomalyDetector:
 
     CALIBRATION_MIN_READINGS: int = 3
     DEVIATION_THRESHOLD_PERCENT: float = 25.0
+    MAX_HISTORY_WINDOW: int = 30
 
     def __init__(self) -> None:
         """Initialize in-memory storage for service cost history and detected alerts."""
-        self.history: DefaultDict[str, List[float]] = defaultdict(list)
+        self.history: DefaultDict[str, Deque[float]] = defaultdict(
+            lambda: deque(maxlen=self.MAX_HISTORY_WINDOW)
+        )
         self.alerts: List[AnomalyReport] = []
 
     def evaluate(self, record: CostRecord) -> AnomalyReport:
@@ -27,6 +30,9 @@ class AnomalyDetector:
             With 3 or more prior readings, compute the historical mean. If the
             current cost exceeds the historical mean by more than 25%, mark
             ``is_anomaly = True`` and persist the report in the internal alerts list.
+        Baseline poisoning protection:
+            Anomalous readings (``is_anomaly = True``) are never appended to the
+            historical baseline, ensuring rolling mean stability against cost spikes.
         """
         service_readings = self.history[record.service_name]
 
@@ -51,7 +57,9 @@ class AnomalyDetector:
         ) * 100.0
         is_anomaly = deviation_percentage > self.DEVIATION_THRESHOLD_PERCENT
 
-        service_readings.append(record.cost_amount)
+        # Baseline poisoning protection: only normal readings are appended
+        if not is_anomaly:
+            service_readings.append(record.cost_amount)
 
         report = AnomalyReport(
             is_anomaly=is_anomaly,
