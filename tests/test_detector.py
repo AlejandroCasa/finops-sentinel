@@ -102,3 +102,56 @@ def test_alerts_endpoint_persists_detected_anomalies() -> None:
     assert alert["historical_mean"] == pytest.approx(200.0)
     assert alert["current_cost"] == pytest.approx(300.0)
     assert alert["deviation_percentage"] == pytest.approx(50.0)
+
+
+def test_baseline_poisoning_protection() -> None:
+    """Verify that an anomalous reading does not inflate the historical mean baseline."""
+    detector.history.clear()
+    detector.alerts.clear()
+
+    service = "api-gateway"
+    # Establish baseline of 100.0 EUR across 3 readings
+    for _ in range(3):
+        client.post(
+            "/api/v1/telemetry",
+            json={"service_name": service, "cost_amount": 100.0},
+        )
+
+    # Trigger anomaly with massive +100% spike (200.0 EUR)
+    anomaly_res = client.post(
+        "/api/v1/telemetry",
+        json={"service_name": service, "cost_amount": 200.0},
+    )
+    assert anomaly_res.status_code == 200
+    assert anomaly_res.json()["is_anomaly"] is True
+
+    # Next reading of 120.0 EUR (+20%) must still be compared against 100.0 EUR baseline
+    subsequent_res = client.post(
+        "/api/v1/telemetry",
+        json={"service_name": service, "cost_amount": 120.0},
+    )
+    assert subsequent_res.status_code == 200
+    data = subsequent_res.json()
+    assert data["historical_mean"] == pytest.approx(100.0)
+    assert data["deviation_percentage"] == pytest.approx(20.0)
+    assert data["is_anomaly"] is False
+    # History must contain exactly the 3 baseline readings plus the 1 normal reading (not the anomaly)
+    assert len(detector.history[service]) == 4
+    assert 200.0 not in detector.history[service]
+
+
+def test_bounded_history_window_eviction() -> None:
+    """Verify that the history deque strictly respects the maxlen=30 sliding window."""
+    detector.history.clear()
+    detector.alerts.clear()
+
+    service = "worker-pool"
+    # Ingest 35 normal readings of 50.0 EUR
+    for i in range(35):
+        client.post(
+            "/api/v1/telemetry",
+            json={"service_name": service, "cost_amount": 50.0 + (i * 0.1)},
+        )
+
+    # Deque must be capped at maxlen = 30
+    assert len(detector.history[service]) == 30
