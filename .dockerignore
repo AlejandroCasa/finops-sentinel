@@ -1,0 +1,19 @@
+# Ignore virtual environments and caches
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Ignore version control and IDE metadata
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# Ignore test suite and documentation from production build context
+tests/
+README.md
+AGENTS.md
