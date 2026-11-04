@@ -16,6 +16,12 @@ app = FastAPI(
 detector = AnomalyDetector()
 
 
+@app.get("/healthz", tags=["Health"])
+def health_check() -> dict[str, str]:
+    """Return liveness and readiness status for Kubernetes orchestration."""
+    return {"status": "ok"}
+
+
 @app.post("/api/v1/telemetry", response_model=AnomalyReport)
 def ingest_telemetry(record: CostRecord) -> AnomalyReport:
     """Ingest a cloud cost telemetry record and evaluate it for cost anomalies."""
