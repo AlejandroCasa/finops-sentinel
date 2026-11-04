@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: finops-sentinel
+  labels:
+    app: finops-sentinel
+    app.kubernetes.io/name: finops-sentinel
+    app.kubernetes.io/part-of: finops-sentinel
+spec:
+  type: ClusterIP
+  selector:
+    app: finops-sentinel
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8000
+      protocol: TCP
