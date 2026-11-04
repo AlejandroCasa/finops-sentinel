@@ -5,7 +5,7 @@ This file tracks prioritized engineering improvements, technical debt, and compl
 ## 🎯 Prioritized Backlog
 
 ### P0 — Critical / Core Engine Resilience
-- [ ] **[api/k8s]** Dedicated `/healthz` Endpoint & Local Kubernetes (`k3s`) Manifests: Add `GET /healthz` liveness/readiness endpoint and declarative `k8s/deployment.yaml` + `k8s/service.yaml` with `securityContext` (`runAsNonRoot: true`, `runAsUser: 10001`) (Impact: 4/5 | Effort: S)
+- [ ] **[resilience]** Graceful Shutdown & Request Draining: Implement SIGTERM/SIGINT signal handling in FastAPI lifespan context for seamless rolling updates in Kubernetes (Impact: 4/5 | Effort: S)
 
 ### P1 — High-Impact Observability & FinOps Standards
 - [ ] **[observability]** Prometheus Metrics Exporter (`/metrics`): Expose `finops_telemetry_ingested_total`, `finops_anomalies_detected_total`, and per-service cost gauges for Grafana dashboards (Impact: 4/5 | Effort: S)
@@ -17,6 +17,7 @@ This file tracks prioritized engineering improvements, technical debt, and compl
 ---
 
 ## ✅ Completed Milestones
+- [x] **[api/k8s]** Dedicated `/healthz` Endpoint & Local Kubernetes (`k3s`) Manifests: Added `GET /healthz` liveness/readiness endpoint and declarative `k8s/deployment.yaml` + `k8s/service.yaml` with hardened `securityContext` (`runAsNonRoot: true`, `UID 10001`, `readOnlyRootFilesystem: true`, capabilities dropped) (`[[ADR-0005-hardened-k8s-manifests-and-healthz]]`) — Branch: `feat/k8s-manifests-and-healthz` (`2026-11-04`)
 - [x] **[detector]** Bounded Sliding Window & Baseline Poisoning Protection: Replaced unbounded `list` with `collections.deque(maxlen=30)` and prevented anomalous spikes from inflating historical mean baseline (`[[ADR-0003-bounded-sliding-window-poisoning-protection]]`) — Branch: `feat/detector-bounded-window` (`2026-11-01`)
 - [x] **[docker]** Multi-stage Dockerfile optimized for `uv` with cache mounts, non-root `appuser` (`UID 10001`), and native `HEALTHCHECK` — Commit: `72f13f9` (`2026-11-01`)
 - [x] **[detector]** Core in-memory anomaly detection engine (`CostRecord`, `AnomalyReport`, calibration rule, +25% threshold, and strict `pytest` suite) — Commit: `d3f343e` (`2026-11-01`)
