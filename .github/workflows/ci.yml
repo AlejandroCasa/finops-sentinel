@@ -1,0 +1,50 @@
+name: CI Quality Gates & DevSecOps
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  quality-gates:
+    name: Zero-Tolerance Quality & Security Gates (>=85% Cov)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv and Python 3.12
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          python-version: "3.12"
+
+      - name: Sync frozen dependencies
+        run: uv sync --frozen
+
+      - name: Gate 1 — Formatting, Import Sorting & Linting (Black + Isort + Ruff)
+        run: |
+          uv run black --check .
+          uv run isort --check-only --profile black .
+          uv run ruff check .
+
+      - name: Gate 2 — Strict Static Typing (Mypy)
+        run: uv run mypy --strict app tests
+
+      - name: Gate 3 — Code Complexity & Maintainability (Radon + Xenon)
+        run: |
+          uv run radon cc app/ -a -nb
+          uv run radon mi app/ -nb
+          uv run xenon --max-absolute B --max-modules A --max-average A app/
+
+      - name: Gate 4 — DevSecOps SAST & Dependency Audit (Bandit + Pip-Audit)
+        run: |
+          uv run bandit -c pyproject.toml -r app/
+          uv run pip-audit
+
+      - name: Gate 5 — Deterministic Test Suite (0 Warnings, >=85% Coverage)
+        run: uv run pytest -v --cov=app --cov-report=term-missing --cov-fail-under=85
+
+      - name: Gate 6 — Hardened Non-Root Container Build
+        run: docker build -t finops-sentinel:ci .
