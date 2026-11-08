@@ -1,7 +1,5 @@
 """FastAPI application entrypoint and HTTP endpoints for FinOps Sentinel."""
 
-from typing import List
-
 from fastapi import FastAPI
 
 from app.detector import AnomalyDetector
@@ -28,7 +26,7 @@ def ingest_telemetry(record: CostRecord) -> AnomalyReport:
     return detector.evaluate(record)
 
 
-@app.get("/api/v1/alerts", response_model=List[AnomalyReport])
-def list_alerts() -> List[AnomalyReport]:
+@app.get("/api/v1/alerts", response_model=list[AnomalyReport])
+def list_alerts() -> list[AnomalyReport]:
     """Return the historical list of all detected cost anomalies."""
     return detector.get_alerts()

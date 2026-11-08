@@ -1,7 +1,6 @@
 """In-memory anomaly detection engine for cloud cost telemetry."""
 
 from collections import defaultdict, deque
-from typing import DefaultDict, Deque, List
 
 from app.schemas import AnomalyReport, CostRecord
 
@@ -15,10 +14,10 @@ class AnomalyDetector:
 
     def __init__(self) -> None:
         """Initialize in-memory storage for service cost history and detected alerts."""
-        self.history: DefaultDict[str, Deque[float]] = defaultdict(
+        self.history: defaultdict[str, deque[float]] = defaultdict(
             lambda: deque(maxlen=self.MAX_HISTORY_WINDOW)
         )
-        self.alerts: List[AnomalyReport] = []
+        self.alerts: list[AnomalyReport] = []
 
     def evaluate(self, record: CostRecord) -> AnomalyReport:
         """Evaluate a new cost record against the service's historical baseline.
@@ -74,6 +73,6 @@ class AnomalyDetector:
 
         return report
 
-    def get_alerts(self) -> List[AnomalyReport]:
+    def get_alerts(self) -> list[AnomalyReport]:
         """Return all anomaly reports recorded so far."""
         return list(self.alerts)
