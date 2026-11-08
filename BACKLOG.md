@@ -4,8 +4,7 @@ This file tracks prioritized engineering improvements, technical debt, and compl
 
 ## 🎯 Prioritized Backlog (Sprint 2026-W46)
 
-### P0 — CI/CD Pipeline, DevSecOps SAST/SCA & Code Complexity Standard
-- [ ] **[cicd/qa]** Full CI/CD & Quality Gate Suite (`.github/workflows/ci.yml` + `pyproject.toml`): Integrate `black`, `isort`, `ruff`, `mypy` (strict), `pytest`, `pytest-cov` (`>=85%`), `bandit` (SAST), `pip-audit` (SCA), and `radon` / `xenon` (cyclomatic complexity `<= B`) as automated GitHub Actions gates (Impact: 5/5 | Effort: S)
+### P0 — Real-Time Observability & Metrics
 - [ ] **[observability]** Prometheus Metrics Exporter (`/metrics`): Expose `finops_telemetry_ingested_total`, `finops_anomalies_detected_total`, and per-service cost gauges for Grafana dashboards (Impact: 5/5 | Effort: S)
 
 ### P1 — Core Engine Resilience & Multi-Cloud Simulation
@@ -18,6 +17,7 @@ This file tracks prioritized engineering improvements, technical debt, and compl
 ---
 
 ## ✅ Completed Milestones
+- [x] **[cicd/qa]** Full CI/CD & Quality Gate Suite: Integrated `black`, `isort`, `ruff`, `mypy` (strict), `bandit` (SAST), `pip-audit` (SCA), `radon` & `xenon` (complexity rank `A`), and `pytest-cov` (`>=85%`) with automated GitHub Actions pipeline (`.github/workflows/ci.yml`) (`[[ADR-0009-finops-sentinel-cicd-devsecops-suite]]`) — Branch: `feat/cicd-devsecops-pipeline` (`2026-11-08`)
 - [x] **[api/k8s]** Dedicated `/healthz` Endpoint & Local Kubernetes (`k3s`) Manifests: Added `GET /healthz` liveness/readiness endpoint and declarative `k8s/deployment.yaml` + `k8s/service.yaml` with hardened `securityContext` (`runAsNonRoot: true`, `UID 10001`, `readOnlyRootFilesystem: true`, capabilities dropped) (`[[ADR-0005-hardened-k8s-manifests-and-healthz]]`) — Branch: `feat/k8s-manifests-and-healthz` (`2026-11-04`)
 - [x] **[detector]** Bounded Sliding Window & Baseline Poisoning Protection: Replaced unbounded `list` with `collections.deque(maxlen=30)` and prevented anomalous spikes from inflating historical mean baseline (`[[ADR-0003-bounded-sliding-window-poisoning-protection]]`) — Branch: `feat/detector-bounded-window` (`2026-11-01`)
 - [x] **[docker]** Multi-stage Dockerfile optimized for `uv` with cache mounts, non-root `appuser` (`UID 10001`), and native `HEALTHCHECK` — Commit: `72f13f9` (`2026-11-01`)
