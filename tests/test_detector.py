@@ -8,6 +8,13 @@ from app.main import app, detector
 client = TestClient(app)
 
 
+def test_healthz_endpoint() -> None:
+    """Verify that GET /healthz returns 200 OK for Kubernetes probes."""
+    response = client.get("/healthz")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+
+
 def test_calibration_period_does_not_trigger_anomaly() -> None:
     """Verify that fewer than 3 prior readings never trigger an anomaly."""
     detector.history.clear()
