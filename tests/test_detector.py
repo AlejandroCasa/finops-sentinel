@@ -112,7 +112,7 @@ def test_alerts_endpoint_persists_detected_anomalies() -> None:
 
 
 def test_baseline_poisoning_protection() -> None:
-    """Verify that an anomalous reading does not inflate the historical mean baseline."""
+    """Verify that an anomalous reading does not inflate historical baseline."""
     detector.history.clear()
     detector.alerts.clear()
 
@@ -142,7 +142,7 @@ def test_baseline_poisoning_protection() -> None:
     assert data["historical_mean"] == pytest.approx(100.0)
     assert data["deviation_percentage"] == pytest.approx(20.0)
     assert data["is_anomaly"] is False
-    # History must contain exactly the 3 baseline readings plus the 1 normal reading (not the anomaly)
+    # History must contain 3 baseline readings plus 1 normal reading (no anomaly)
     assert len(detector.history[service]) == 4
     assert 200.0 not in detector.history[service]
 
