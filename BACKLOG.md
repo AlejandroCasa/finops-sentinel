@@ -4,9 +4,6 @@ This file tracks prioritized engineering improvements, technical debt, and compl
 
 ## 🎯 Prioritized Backlog (Sprint 2026-W46)
 
-### P0 — Real-Time Observability & Metrics
-- [ ] **[observability]** Prometheus Metrics Exporter (`/metrics`): Expose `finops_telemetry_ingested_total`, `finops_anomalies_detected_total`, and per-service cost gauges for Grafana dashboards (Impact: 5/5 | Effort: S)
-
 ### P1 — Core Engine Resilience & Multi-Cloud Simulation
 - [ ] **[resilience]** Graceful Shutdown & Request Draining: Implement SIGTERM/SIGINT signal handling in FastAPI `lifespan` context for seamless rolling updates in Kubernetes (Impact: 4/5 | Effort: S)
 - [ ] **[simulation]** Synthetic Multi-Service Traffic Simulator (`scripts/simulate_traffic.py`): CLI utility using `httpx` to simulate realistic multi-service cloud billing streams and FOCUS™ cost events locally (Impact: 4/5 | Effort: S)
@@ -17,6 +14,7 @@ This file tracks prioritized engineering improvements, technical debt, and compl
 ---
 
 ## ✅ Completed Milestones
+- [x] **[observability]** Prometheus Metrics Exporter (`/metrics`): Implemented native zero-dependency Prometheus 0.0.4 text exposition exporter tracking `finops_telemetry_ingested_total`, `finops_anomalies_detected_total`, and `finops_service_cost_amount_gauge` with thread-safe registry, k8s pod scrape annotations, and 100% test coverage (`[[ADR-0012-finops-sentinel-prometheus-metrics-exporter]]`) — Branch: `feat/observability-prometheus-metrics` (`2026-11-11`)
 - [x] **[cicd/qa]** Full CI/CD & Quality Gate Suite: Integrated `black`, `isort`, `ruff`, `mypy` (strict), `bandit` (SAST), `pip-audit` (SCA), `radon` & `xenon` (complexity rank `A`), and `pytest-cov` (`>=85%`) with automated GitHub Actions pipeline (`.github/workflows/ci.yml`) (`[[ADR-0009-finops-sentinel-cicd-devsecops-suite]]`) — Branch: `feat/cicd-devsecops-pipeline` (`2026-11-08`)
 - [x] **[api/k8s]** Dedicated `/healthz` Endpoint & Local Kubernetes (`k3s`) Manifests: Added `GET /healthz` liveness/readiness endpoint and declarative `k8s/deployment.yaml` + `k8s/service.yaml` with hardened `securityContext` (`runAsNonRoot: true`, `UID 10001`, `readOnlyRootFilesystem: true`, capabilities dropped) (`[[ADR-0005-hardened-k8s-manifests-and-healthz]]`) — Branch: `feat/k8s-manifests-and-healthz` (`2026-11-04`)
 - [x] **[detector]** Bounded Sliding Window & Baseline Poisoning Protection: Replaced unbounded `list` with `collections.deque(maxlen=30)` and prevented anomalous spikes from inflating historical mean baseline (`[[ADR-0003-bounded-sliding-window-poisoning-protection]]`) — Branch: `feat/detector-bounded-window` (`2026-11-01`)
