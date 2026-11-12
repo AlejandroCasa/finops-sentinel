@@ -1,7 +1,7 @@
 """Prometheus metrics registry and text exposition formatter for FinOps Sentinel."""
 
-from collections import Counter
 import threading
+from collections import Counter
 
 
 class MetricsRegistry:
@@ -55,9 +55,7 @@ class MetricsRegistry:
                 for (service, currency), count in sorted(
                     self._telemetry_ingested.items()
                 ):
-                    label_part = (
-                        f'currency="{currency}",service="{service}"'
-                    )
+                    label_part = f'currency="{currency}",service="{service}"'
                     val = float(count)
                     lines.append(
                         f"finops_telemetry_ingested_total{{{label_part}}} {val}"
@@ -89,9 +87,7 @@ class MetricsRegistry:
                 for (service, currency), amount in sorted(
                     self._service_cost_gauge.items()
                 ):
-                    label_part = (
-                        f'currency="{currency}",service="{service}"'
-                    )
+                    label_part = f'currency="{currency}",service="{service}"'
                     lines.append(
                         f"finops_service_cost_amount_gauge{{{label_part}}} "
                         f"{float(amount)}"

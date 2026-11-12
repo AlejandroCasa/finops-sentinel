@@ -1,6 +1,6 @@
 """Pydantic data models for FinOps Sentinel."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from pydantic import BaseModel, Field
 
@@ -9,7 +9,7 @@ class CostRecord(BaseModel):
     """Represents a cloud service cost telemetry record."""
 
     timestamp: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         description="UTC timestamp of the cost reading.",
     )
     service_name: str = Field(
