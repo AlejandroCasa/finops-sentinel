@@ -16,6 +16,12 @@ FinOps Sentinel ingests real-time cost telemetry events across cloud providers o
   - **Deviation Threshold**: Triggers an anomaly (`is_anomaly = True`) whenever a new reading exceeds the historical mean by more than **+25%**.
 - **Alert Audit Trail (`GET /api/v1/alerts`)**:
   - Exposes all persisted [`AnomalyReport`](app/schemas.py) events with exact `deviation_percentage`, `current_cost`, and `historical_mean`.
+- **Prometheus Observability Exporter (`GET /metrics`)**:
+  - Native, zero-dependency Prometheus 0.0.4 text exposition exporter tracking:
+    - `finops_telemetry_ingested_total`: Counter tracking total telemetry events ingested per cloud service and currency.
+    - `finops_anomalies_detected_total`: Counter tracking anomaly triggers per service.
+    - `finops_service_cost_amount_gauge`: Gauge capturing the most recent cost amount per service.
+  - Native Kubernetes discovery annotations configured in [`k8s/deployment.yaml`](k8s/deployment.yaml) (`prometheus.io/scrape: "true"`).
 - **Production-Grade Quality & Container Hardening**:
   - Deterministic dependency management via **`uv`** (`uv.lock`).
   - Zero-tolerance QA pipeline: `ruff`, `mypy` strict typing, and `pytest` with `filterwarnings = ["error"]` and `>= 85%` coverage.
@@ -65,6 +71,9 @@ echo ""
 
 # Step 4: Inspect persisted alerts
 curl -s http://localhost:8000/api/v1/alerts | python3 -m json.tool
+
+# Step 5: Scrape Prometheus metrics
+curl -s http://localhost:8000/metrics
 ```
 
 ---
