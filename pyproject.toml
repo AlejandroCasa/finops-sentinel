@@ -56,3 +56,15 @@ select = ["E", "F", "I", "B", "UP", "N", "SIM", "RUF"]
 python_version = "3.12"
 strict = true
 ignore_missing_imports = true
+
+[dependency-groups]
+dev = [
+    "commitizen>=4.19.3",
+    "pre-commit>=4.7.0",
+]
+
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+tag_format = "v$version"
+version_provider = "pep621"
