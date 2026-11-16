@@ -4,19 +4,20 @@ This file tracks prioritized engineering improvements, technical debt, and compl
 
 ## 🎯 Prioritized Backlog (Sprint 2026-W47)
 
-### P1 — Ingestion Expansion, Active Alerting & Resilience
-- [ ] **[ingestion]** Batch Ingestion (`POST /api/v1/telemetry/batch`) & LLM Token Cost Calculator (`POST /api/v1/telemetry/llm`): Support bulk cost evaluation and automatic token-to-USD calculation (`model`, `input_tokens`, `output_tokens`) (Impact: 5/5 | Effort: M)
-- [ ] **[alerts]** Push Webhook Notifier with Cooldown: Dispatch anomaly notifications to Slack/Teams/Discord webhooks (`FINOPS_WEBHOOK_URL`) with per-service deduplication cooldown (Impact: 4/5 | Effort: S)
+### P1 — Advanced Resilience & Standard Formats
 - [ ] **[resilience]** Graceful Shutdown & Traffic Simulator: Implement `SIGTERM`/`SIGINT` draining in FastAPI `lifespan` and add `scripts/simulate_traffic.py` (`httpx`) for multi-service billing simulation (Impact: 4/5 | Effort: S)
 - [ ] **[detector]** Configurable Statistical Detection (`Z-Score` & `EWMA`): Support standard-deviation (`Z-Score`) and exponentially weighted moving average (`EWMA`) strategies alongside the classic +25% threshold via `pydantic-settings` (Impact: 4/5 | Effort: M)
 - [ ] **[focus]** FinOps FOCUS™ 1.0 Ingestion (`POST /api/v1/telemetry/focus`): Support standard FinOps Open Cost and Usage Specification payloads (`BilledCost`, `EffectiveCost`, `ServiceName`, `RegionId`) (Impact: 4/5 | Effort: S)
 
-### P2 — Extreme Verification, Fuzzing & DevSecOps Gates
-- [ ] **[devsecops]** Advanced Security & Verification Tooling (`mutmut`, `semgrep`/`codeql`, `atheris`, `trivy`) in CI/CD (`.github/workflows/ci.yml`) (Impact: 5/5 | Effort: M)
+### P2 — Observability Dashboards & Cloud Providers
+- [ ] **[grafana]** Preconfigured Grafana Dashboard Manifests: Add declarative JSON dashboard manifests for Prometheus metrics (`finops_telemetry_ingested_total`, `finops_anomalies_detected_total`, `finops_service_cost_amount_gauge`) (Impact: 4/5 | Effort: S)
+- [ ] **[connectors]** Cloud Billing Exporter Connectors: Native pull adapters for AWS Cost Explorer and Azure Consumption API (Impact: 5/5 | Effort: L)
 
 ---
 
 ## ✅ Completed Milestones
+- [x] **[ingestion/llm/webhooks]** Batch Ingestion, LLM Token Cost Calculator & Push Webhook Alerts: Added `POST /api/v1/telemetry/batch` (bulk evaluation 1-500 records), `POST /api/v1/telemetry/llm` (deterministic token-to-USD pricing for GPT-4o, Claude 3.5, Gemini 2.5), and `WebhookNotifier` with per-service anti-spam cooldown window (`[[ADR-0016-finops-sentinel-batch-llm-ingestion-and-webhooks]]`) — Branch: `feat/batch-llm-ingestion-and-webhooks` (`2026-11-16`)
+- [x] **[ci/universal-4-phase]** Universal 4-Phase CI/CD Pipeline Standard: Full expansion of `.github/workflows/ci.yml` across Phase 1 (QA/Typing), Phase 2 (SAST/SCA/Complexity), Phase 3 (Extreme Verification/Semgrep/Trivy), and Phase 4 (Supply Chain/Gitleaks/Syft SBOM/IaC/Schemathesis) — Branch: `feat/batch-llm-ingestion-and-webhooks` (`2026-11-16`)
 - [x] **[multi-tenant/persistence/guard]** Multi-Tenant Attribution, SQLite Persistence & Budget Guard Circuit Breaker: Added multi-project isolation (`project`, `environment`, `owner_team`, `commit_sha`), embedded SQLite storage (`sqlite3`), API key security (`X-API-Key` via `pydantic-settings`), and `GET /api/v1/guard/{project}` circuit breaker endpoint (`[[ADR-0013-finops-sentinel-multi-tenant-sqlite-persistence]]`) — Branch: `feat/multi-tenant-persistence-and-guard` (`2026-11-16`)
 - [x] **[ci/shift-left]** Shift-Left Pre-Commit & Commitizen Integration: Added `.pre-commit-config.yaml` with offline deterministic hooks and `commitizen` conventional commit validation (`[[ADR-0009-finops-sentinel-cicd-devsecops-suite]]`) — Branch: `chore/pre-commit-commitizen` (`2026-11-13`)
 - [x] **[observability]** Prometheus Metrics Exporter (`/metrics`): Implemented native zero-dependency Prometheus 0.0.4 text exposition exporter tracking `finops_telemetry_ingested_total`, `finops_anomalies_detected_total`, and `finops_service_cost_amount_gauge` with thread-safe registry, k8s pod scrape annotations, and 100% test coverage (`[[ADR-0012-finops-sentinel-prometheus-metrics-exporter]]`) — Branch: `feat/observability-prometheus-metrics` (`2026-11-11`)
