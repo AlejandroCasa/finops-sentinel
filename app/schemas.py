@@ -26,6 +26,23 @@ class CostRecord(BaseModel):
         default="EUR",
         description="ISO 4217 currency code.",
     )
+    project: str = Field(
+        default="default",
+        min_length=1,
+        description="Project or tenant identifier for multi-tenant isolation.",
+    )
+    environment: str = Field(
+        default="prod",
+        description="Deployment environment (e.g. dev, staging, prod).",
+    )
+    owner_team: str = Field(
+        default="platform",
+        description="Team responsible for cloud resource cost attribution.",
+    )
+    commit_sha: str | None = Field(
+        default=None,
+        description="Optional Git commit SHA associated with the deployment.",
+    )
 
 
 class AnomalyReport(BaseModel):
@@ -50,4 +67,47 @@ class AnomalyReport(BaseModel):
     service_name: str = Field(
         ...,
         description="Name of the evaluated cloud service.",
+    )
+    project: str = Field(
+        default="default",
+        description="Project or tenant identifier.",
+    )
+    environment: str = Field(
+        default="prod",
+        description="Deployment environment.",
+    )
+    owner_team: str = Field(
+        default="platform",
+        description="Owner team attribution.",
+    )
+    commit_sha: str | None = Field(
+        default=None,
+        description="Git commit SHA associated with the cost reading.",
+    )
+    timestamp: datetime = Field(
+        default_factory=lambda: datetime.now(UTC),
+        description="UTC timestamp of the anomaly evaluation.",
+    )
+
+
+class ProjectGuardResponse(BaseModel):
+    """Budget guard circuit breaker response for CI/CD gates and AI agents."""
+
+    project: str = Field(..., description="Project identifier.")
+    allowed: bool = Field(
+        ...,
+        description="True if execution is permitted, False if blocked by budget.",
+    )
+    reason: str = Field(..., description="Explanation of the guard decision.")
+    total_cost: float = Field(
+        ...,
+        description="Cumulative recorded cost for the project.",
+    )
+    budget_limit: float = Field(
+        ...,
+        description="Hard spending limit configured for the project.",
+    )
+    anomaly_count: int = Field(
+        ...,
+        description="Number of active anomalies detected for the project.",
     )

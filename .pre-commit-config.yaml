@@ -1,0 +1,74 @@
+default_install_hook_types: [pre-commit, commit-msg, pre-push]
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: check-toml
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+      - id: check-merge-conflict
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.24.2
+    hooks:
+      - id: gitleaks
+
+  - repo: local
+    hooks:
+      - id: commitizen
+        name: commitizen (Conventional Commits)
+        entry: uv run --no-sync cz check --commit-msg-file
+        language: system
+        stages: [commit-msg]
+
+      - id: black
+        name: black (Code Formatting)
+        entry: uv run --no-sync black --check
+        language: system
+        types: [python]
+
+      - id: isort
+        name: isort (Import Sorting)
+        entry: uv run --no-sync isort --check-only --profile black
+        language: system
+        types: [python]
+
+      - id: ruff
+        name: ruff (Fast Linter)
+        entry: uv run --no-sync ruff check
+        language: system
+        types: [python]
+
+      - id: mypy
+        name: mypy (Strict Static Typing)
+        entry: uv run --no-sync mypy --strict app tests
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      - id: bandit
+        name: bandit (SAST Security)
+        entry: uv run --no-sync bandit -c pyproject.toml -r app/
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      - id: xenon
+        name: xenon (Cyclomatic Complexity Gate)
+        entry: uv run --no-sync xenon --max-absolute B --max-modules A --max-average A app/
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      - id: pytest
+        name: pytest (Fast Unit & Integration Suite)
+        entry: uv run --no-sync pytest -q
+        language: system
+        stages: [pre-push]
+        pass_filenames: false
+        always_run: true
