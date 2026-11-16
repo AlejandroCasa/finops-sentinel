@@ -4,6 +4,7 @@ import sqlite3
 from collections import defaultdict, deque
 
 from app.config import settings
+from app.notifier import WebhookNotifier, webhook_notifier
 from app.schemas import AnomalyReport, CostRecord, ProjectGuardResponse
 
 
@@ -14,9 +15,14 @@ class AnomalyDetector:
     DEVIATION_THRESHOLD_PERCENT: float = 25.0
     MAX_HISTORY_WINDOW: int = 30
 
-    def __init__(self, db_path: str | None = None) -> None:
-        """Initialize in-memory storage and SQLite persistence layer."""
+    def __init__(
+        self,
+        db_path: str | None = None,
+        notifier: WebhookNotifier | None = None,
+    ) -> None:
+        """Initialize in-memory storage, SQLite layer, and webhook notifier."""
         self.db_path = db_path or settings.db_path
+        self.notifier = notifier or webhook_notifier
         self.history: defaultdict[tuple[str, str, str], deque[float]] = defaultdict(
             lambda: deque(maxlen=self.MAX_HISTORY_WINDOW)
         )
@@ -160,6 +166,7 @@ class AnomalyDetector:
         if is_anomaly:
             self.alerts.append(report)
             self._persist_alert(report)
+            self.notifier.send_alert(report)
 
         return report
 
@@ -215,8 +222,7 @@ class AnomalyDetector:
             project=project,
             allowed=True,
             reason=(
-                "Project spend and anomaly counts within normal "
-                "operational parameters"
+                "Project spend and anomaly counts within normal operational parameters"
             ),
             total_cost=total_cost,
             budget_limit=budget_limit,
@@ -230,9 +236,10 @@ class AnomalyDetector:
         return list(self.alerts)
 
     def reset(self) -> None:
-        """Clear memory cache and SQLite tables for test isolation."""
+        """Clear memory cache, SQLite tables, and notifier for test isolation."""
         self.history.clear()
         self.alerts.clear()
+        self.notifier.reset()
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute("DELETE FROM cost_readings")

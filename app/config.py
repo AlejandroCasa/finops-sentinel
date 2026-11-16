@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     db_path: str = Field(default_factory=_default_db_path)
     budget_default_limit: float = 1000.0
     max_anomalies_before_block: int = 3
+    webhook_url: str = ""
+    webhook_cooldown_seconds: int = 300
 
 
 settings = Settings()

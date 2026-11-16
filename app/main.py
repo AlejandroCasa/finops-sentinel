@@ -6,15 +6,24 @@ from fastapi.security import APIKeyHeader
 from app.config import settings
 from app.detector import AnomalyDetector
 from app.metrics import metrics_registry
-from app.schemas import AnomalyReport, CostRecord, ProjectGuardResponse
+from app.pricing import calculate_llm_cost
+from app.schemas import (
+    AnomalyReport,
+    BatchTelemetryRequest,
+    BatchTelemetryResponse,
+    CostRecord,
+    LLMAnomalyReport,
+    LLMTelemetryRequest,
+    ProjectGuardResponse,
+)
 
 app = FastAPI(
     title="FinOps Sentinel",
     description=(
         "Real-time cloud cost anomaly detection microservice "
-        "with multi-tenant isolation."
+        "with multi-tenant isolation, batch ingestion, and LLM cost estimation."
     ),
-    version="0.2.0",
+    version="0.3.0",
 )
 
 detector = AnomalyDetector()
@@ -65,7 +74,7 @@ def get_metrics() -> Response:
     tags=["Telemetry"],
 )
 def ingest_telemetry(record: CostRecord) -> AnomalyReport:
-    """Ingest a cloud cost telemetry record and evaluate it for cost anomalies."""
+    """Ingest a single cloud cost telemetry record and evaluate for anomalies."""
     report = detector.evaluate(record)
     metrics_registry.record_telemetry(
         service=record.service_name,
@@ -75,6 +84,82 @@ def ingest_telemetry(record: CostRecord) -> AnomalyReport:
     if report.is_anomaly:
         metrics_registry.record_anomaly(service=record.service_name)
     return report
+
+
+@app.post(
+    "/api/v1/telemetry/batch",
+    response_model=BatchTelemetryResponse,
+    dependencies=[Depends(verify_api_key)],
+    tags=["Telemetry"],
+)
+def ingest_telemetry_batch(batch: BatchTelemetryRequest) -> BatchTelemetryResponse:
+    """Ingest multiple cloud cost telemetry records in a single batch operation."""
+    reports: list[AnomalyReport] = []
+    anomalies_count = 0
+
+    for record in batch.records:
+        report = detector.evaluate(record)
+        metrics_registry.record_telemetry(
+            service=record.service_name,
+            currency=record.currency,
+            cost=record.cost_amount,
+        )
+        if report.is_anomaly:
+            anomalies_count += 1
+            metrics_registry.record_anomaly(service=record.service_name)
+        reports.append(report)
+
+    return BatchTelemetryResponse(
+        total_processed=len(batch.records),
+        anomalies_detected=anomalies_count,
+        reports=reports,
+    )
+
+
+@app.post(
+    "/api/v1/telemetry/llm",
+    response_model=LLMAnomalyReport,
+    dependencies=[Depends(verify_api_key)],
+    tags=["Telemetry"],
+)
+def ingest_llm_telemetry(payload: LLMTelemetryRequest) -> LLMAnomalyReport:
+    """Calculate LLM token cost in USD, ingest telemetry, and detect anomalies."""
+    cost_usd = calculate_llm_cost(
+        model=payload.model,
+        input_tokens=payload.input_tokens,
+        output_tokens=payload.output_tokens,
+    )
+    record = CostRecord(
+        service_name=payload.service_name,
+        cost_amount=cost_usd,
+        currency="USD",
+        project=payload.project,
+        environment=payload.environment,
+        owner_team=payload.owner_team,
+        commit_sha=payload.commit_sha,
+    )
+    report = detector.evaluate(record)
+    metrics_registry.record_telemetry(
+        service=record.service_name,
+        currency=record.currency,
+        cost=record.cost_amount,
+    )
+    if report.is_anomaly:
+        metrics_registry.record_anomaly(service=record.service_name)
+
+    return LLMAnomalyReport(
+        is_anomaly=report.is_anomaly,
+        deviation_percentage=report.deviation_percentage,
+        current_cost=report.current_cost,
+        historical_mean=report.historical_mean,
+        service_name=report.service_name,
+        project=report.project,
+        environment=report.environment,
+        owner_team=report.owner_team,
+        commit_sha=report.commit_sha,
+        timestamp=report.timestamp,
+        calculated_cost_usd=cost_usd,
+    )
 
 
 @app.get(

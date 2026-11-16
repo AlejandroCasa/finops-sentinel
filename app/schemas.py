@@ -1,8 +1,9 @@
 """Pydantic data models for FinOps Sentinel."""
 
 from datetime import UTC, datetime
+from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class CostRecord(BaseModel):
@@ -110,4 +111,92 @@ class ProjectGuardResponse(BaseModel):
     anomaly_count: int = Field(
         ...,
         description="Number of active anomalies detected for the project.",
+    )
+
+
+class BatchTelemetryRequest(BaseModel):
+    """Batch ingestion request payload containing multiple cost telemetry records."""
+
+    records: list[CostRecord] = Field(
+        ...,
+        min_length=1,
+        max_length=500,
+        description="List of cost telemetry records to evaluate (1 to 500 records).",
+    )
+
+
+class BatchTelemetryResponse(BaseModel):
+    """Summary of batch telemetry evaluation and anomaly detection."""
+
+    total_processed: int = Field(
+        ...,
+        description="Total number of records processed in the batch.",
+    )
+    anomalies_detected: int = Field(
+        ...,
+        description="Total number of anomalies detected across all batch records.",
+    )
+    reports: list[AnomalyReport] = Field(
+        ...,
+        description="Detailed anomaly evaluation report for each ingested record.",
+    )
+
+
+class LLMTelemetryRequest(BaseModel):
+    """Telemetry payload for LLM token usage and automated cost estimation."""
+
+    service_name: str = Field(
+        ...,
+        min_length=1,
+        description="Name of the service generating token usage.",
+    )
+    model: str = Field(
+        ...,
+        min_length=1,
+        description="Model identifier (e.g. gpt-4o, claude-3-5-sonnet).",
+    )
+    input_tokens: int = Field(
+        ...,
+        ge=0,
+        description="Number of prompt/input tokens consumed.",
+    )
+    output_tokens: int = Field(
+        ...,
+        ge=0,
+        description="Number of completion/output tokens generated.",
+    )
+    project: str = Field(
+        default="default",
+        min_length=1,
+        description="Project or tenant identifier.",
+    )
+    environment: Literal["dev", "staging", "prod"] = Field(
+        default="prod",
+        description="Deployment environment (dev, staging, prod).",
+    )
+    owner_team: str = Field(
+        default="platform",
+        description="Team responsible for cost attribution.",
+    )
+    commit_sha: str | None = Field(
+        default=None,
+        description="Optional Git commit SHA associated with the deployment.",
+    )
+
+    @model_validator(mode="after")
+    def validate_positive_tokens(self) -> "LLMTelemetryRequest":
+        """Ensure that combined token count is strictly greater than zero."""
+        if self.input_tokens + self.output_tokens <= 0:
+            raise ValueError(
+                "Combined input_tokens and output_tokens must be greater than zero."
+            )
+        return self
+
+
+class LLMAnomalyReport(AnomalyReport):
+    """Anomaly report for LLM telemetry including calculated USD cost."""
+
+    calculated_cost_usd: float = Field(
+        ...,
+        description="Calculated cost in USD derived from token usage.",
     )

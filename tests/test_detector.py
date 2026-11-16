@@ -16,9 +16,11 @@ client = TestClient(app)
 
 @pytest.fixture(autouse=True)
 def clean_detector_state() -> None:
-    """Ensure detector memory and SQLite state is reset before each test."""
+    """Ensure detector memory, SQLite state, and settings are reset before each test."""
     detector.reset()
     settings.api_key = None
+    settings.webhook_url = ""
+    settings.webhook_cooldown_seconds = 300
 
 
 def test_healthz_endpoint() -> None:
