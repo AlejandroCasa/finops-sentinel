@@ -31,8 +31,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Create a dedicated non-privileged user and group
-RUN groupadd --system --gid 10001 appgroup && \
+# Patch OS base packages and create a dedicated non-privileged user and group
+RUN apt-get update && \
+    apt-get upgrade -y --no-install-recommends && \
+    rm -rf /var/lib/apt/lists/* && \
+    groupadd --system --gid 10001 appgroup && \
     useradd --system --uid 10001 --gid appgroup --no-create-home --shell /usr/sbin/nologin appuser
 
 # Copy pre-built virtual environment and application package from builder stage
