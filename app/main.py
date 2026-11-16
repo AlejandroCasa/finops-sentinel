@@ -1,5 +1,8 @@
 """FastAPI application entrypoint and HTTP endpoints for FinOps Sentinel."""
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import Depends, FastAPI, HTTPException, Response, Security, status
 from fastapi.security import APIKeyHeader
 
@@ -12,10 +15,23 @@ from app.schemas import (
     BatchTelemetryRequest,
     BatchTelemetryResponse,
     CostRecord,
+    FOCUSAnomalyReport,
+    FOCUSTelemetryRequest,
     LLMAnomalyReport,
     LLMTelemetryRequest,
     ProjectGuardResponse,
 )
+
+detector = AnomalyDetector()
+
+
+@asynccontextmanager
+async def lifespan(app_instance: FastAPI) -> AsyncIterator[None]:
+    """Manage application startup and graceful SQLite draining on shutdown."""
+    detector._init_db()
+    yield
+    detector.close()
+
 
 app = FastAPI(
     title="FinOps Sentinel",
@@ -23,10 +39,9 @@ app = FastAPI(
         "Real-time cloud cost anomaly detection microservice "
         "with multi-tenant isolation, batch ingestion, and LLM cost estimation."
     ),
-    version="0.3.0",
+    version="0.4.0",
+    lifespan=lifespan,
 )
-
-detector = AnomalyDetector()
 
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
@@ -159,6 +174,52 @@ def ingest_llm_telemetry(payload: LLMTelemetryRequest) -> LLMAnomalyReport:
         commit_sha=report.commit_sha,
         timestamp=report.timestamp,
         calculated_cost_usd=cost_usd,
+    )
+
+
+@app.post(
+    "/api/v1/telemetry/focus",
+    response_model=FOCUSAnomalyReport,
+    dependencies=[Depends(verify_api_key)],
+    tags=["Telemetry"],
+)
+def ingest_focus_telemetry(payload: FOCUSTelemetryRequest) -> FOCUSAnomalyReport:
+    """Ingest cloud cost telemetry conforming to the FOCUS 1.0 specification."""
+    evaluated_cost = (
+        payload.effective_cost if payload.effective_cost > 0 else payload.billed_cost
+    )
+    record = CostRecord(
+        service_name=payload.service_name,
+        cost_amount=evaluated_cost,
+        currency=payload.billing_currency,
+        project=payload.sub_account_id,
+        environment=payload.environment,
+        owner_team=payload.owner_team,
+        commit_sha=payload.commit_sha,
+    )
+    report = detector.evaluate(record)
+    metrics_registry.record_telemetry(
+        service=record.service_name,
+        currency=record.currency,
+        cost=record.cost_amount,
+    )
+    if report.is_anomaly:
+        metrics_registry.record_anomaly(service=record.service_name)
+
+    return FOCUSAnomalyReport(
+        is_anomaly=report.is_anomaly,
+        deviation_percentage=report.deviation_percentage,
+        current_cost=report.current_cost,
+        historical_mean=report.historical_mean,
+        service_name=report.service_name,
+        project=report.project,
+        environment=report.environment,
+        owner_team=report.owner_team,
+        commit_sha=report.commit_sha,
+        timestamp=report.timestamp,
+        billed_cost=payload.billed_cost,
+        effective_cost=payload.effective_cost,
+        region_id=payload.region_id,
     )
 
 

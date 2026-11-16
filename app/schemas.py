@@ -3,7 +3,7 @@
 from datetime import UTC, datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class CostRecord(BaseModel):
@@ -200,3 +200,76 @@ class LLMAnomalyReport(AnomalyReport):
         ...,
         description="Calculated cost in USD derived from token usage.",
     )
+
+
+class FOCUSTelemetryRequest(BaseModel):
+    """FOCUS 1.0 telemetry request with column aliases and cost validation."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    billed_cost: float = Field(
+        ...,
+        alias="BilledCost",
+        ge=0.0,
+        description="FOCUS BilledCost amount.",
+    )
+    effective_cost: float = Field(
+        ...,
+        alias="EffectiveCost",
+        ge=0.0,
+        description="FOCUS EffectiveCost amount.",
+    )
+    service_name: str = Field(
+        ...,
+        alias="ServiceName",
+        min_length=1,
+        description="FOCUS ServiceName.",
+    )
+    region_id: str = Field(
+        default="global",
+        alias="RegionId",
+        min_length=1,
+        description="FOCUS RegionId.",
+    )
+    billing_currency: str = Field(
+        default="USD",
+        alias="BillingCurrency",
+        min_length=3,
+        max_length=3,
+        description="ISO 4217 BillingCurrency.",
+    )
+    sub_account_id: str = Field(
+        default="default",
+        alias="SubAccountId",
+        min_length=1,
+        description="FOCUS SubAccountId mapped to project.",
+    )
+    environment: Literal["dev", "staging", "prod"] = Field(
+        default="prod",
+        description="Deployment environment.",
+    )
+    owner_team: str = Field(
+        default="platform",
+        description="Team attribution.",
+    )
+    commit_sha: str | None = Field(
+        default=None,
+        description="Optional Git commit SHA.",
+    )
+
+    @model_validator(mode="after")
+    def validate_positive_focus_cost(self) -> "FOCUSTelemetryRequest":
+        """Ensure either EffectiveCost or BilledCost is strictly greater than zero."""
+        if not (self.effective_cost > 0 or self.billed_cost > 0):
+            raise ValueError(
+                "Either EffectiveCost or BilledCost must be strictly greater than zero."
+            )
+        return self
+
+
+class FOCUSAnomalyReport(AnomalyReport):
+    """Anomaly report for FOCUS 1.0 telemetry specification."""
+
+    billed_cost: float = Field(..., description="FOCUS BilledCost evaluated.")
+    effective_cost: float = Field(..., description="FOCUS EffectiveCost evaluated.")
+    region_id: str = Field(..., description="Cloud region identifier.")

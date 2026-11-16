@@ -2,6 +2,7 @@
 
 import os
 import tempfile
+from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -23,6 +24,10 @@ class Settings(BaseSettings):
     max_anomalies_before_block: int = 3
     webhook_url: str = ""
     webhook_cooldown_seconds: int = 300
+    detection_strategy: Literal["percentage", "zscore", "ewma"] = "percentage"
+    deviation_threshold_percent: float = 25.0
+    zscore_threshold: float = 2.5
+    ewma_alpha: float = 0.3
 
 
 settings = Settings()
