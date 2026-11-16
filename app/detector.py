@@ -1,9 +1,11 @@
 """Anomaly detection engine with multi-tenant baselines and SQLite persistence."""
 
 import sqlite3
+import statistics
 from collections import defaultdict, deque
 
 from app.config import settings
+from app.notifier import WebhookNotifier, webhook_notifier
 from app.schemas import AnomalyReport, CostRecord, ProjectGuardResponse
 
 
@@ -14,9 +16,14 @@ class AnomalyDetector:
     DEVIATION_THRESHOLD_PERCENT: float = 25.0
     MAX_HISTORY_WINDOW: int = 30
 
-    def __init__(self, db_path: str | None = None) -> None:
-        """Initialize in-memory storage and SQLite persistence layer."""
+    def __init__(
+        self,
+        db_path: str | None = None,
+        notifier: WebhookNotifier | None = None,
+    ) -> None:
+        """Initialize in-memory storage, SQLite layer, and webhook notifier."""
         self.db_path = db_path or settings.db_path
+        self.notifier = notifier or webhook_notifier
         self.history: defaultdict[tuple[str, str, str], deque[float]] = defaultdict(
             lambda: deque(maxlen=self.MAX_HISTORY_WINDOW)
         )
@@ -108,6 +115,33 @@ class AnomalyDetector:
             )
             conn.commit()
 
+    def _compute_baseline(self, readings: deque[float], strategy: str) -> float:
+        """Compute baseline historical mean using percentage, z-score, or EWMA."""
+        if strategy == "ewma":
+            alpha = settings.ewma_alpha
+            ewma = readings[0]
+            for reading in list(readings)[1:]:
+                ewma = alpha * reading + (1.0 - alpha) * ewma
+            return float(ewma)
+        return float(statistics.fmean(readings))
+
+    def _is_anomalous(
+        self,
+        cost: float,
+        mean: float,
+        readings: deque[float],
+        strategy: str,
+    ) -> tuple[bool, float]:
+        """Determine whether cost is anomalous and calculate deviation percentage."""
+        deviation_pct = ((cost - mean) / mean) * 100.0 if mean > 0.0 else 0.0
+        if strategy == "zscore":
+            stdev = statistics.pstdev(readings)
+            if stdev > 0.0:
+                z_score = (cost - mean) / stdev
+                return z_score > settings.zscore_threshold, deviation_pct
+            return deviation_pct > settings.deviation_threshold_percent, deviation_pct
+        return deviation_pct > settings.deviation_threshold_percent, deviation_pct
+
     def evaluate(self, record: CostRecord) -> AnomalyReport:
         """Evaluate a cost record against its project-environment-service baseline."""
         self._persist_reading(record)
@@ -116,9 +150,7 @@ class AnomalyDetector:
 
         if len(service_readings) < self.CALIBRATION_MIN_READINGS:
             historical_mean = (
-                sum(service_readings) / len(service_readings)
-                if service_readings
-                else 0.0
+                statistics.fmean(service_readings) if service_readings else 0.0
             )
             service_readings.append(record.cost_amount)
             return AnomalyReport(
@@ -134,11 +166,11 @@ class AnomalyDetector:
                 timestamp=record.timestamp,
             )
 
-        historical_mean = sum(service_readings) / len(service_readings)
-        deviation_percentage = (
-            (record.cost_amount - historical_mean) / historical_mean
-        ) * 100.0
-        is_anomaly = deviation_percentage > self.DEVIATION_THRESHOLD_PERCENT
+        strategy = settings.detection_strategy
+        historical_mean = self._compute_baseline(service_readings, strategy)
+        is_anomaly, deviation_percentage = self._is_anomalous(
+            record.cost_amount, historical_mean, service_readings, strategy
+        )
 
         # Baseline poisoning protection: anomalous readings are excluded
         if not is_anomaly:
@@ -160,6 +192,7 @@ class AnomalyDetector:
         if is_anomaly:
             self.alerts.append(report)
             self._persist_alert(report)
+            self.notifier.send_alert(report)
 
         return report
 
@@ -215,8 +248,7 @@ class AnomalyDetector:
             project=project,
             allowed=True,
             reason=(
-                "Project spend and anomaly counts within normal "
-                "operational parameters"
+                "Project spend and anomaly counts within normal operational parameters"
             ),
             total_cost=total_cost,
             budget_limit=budget_limit,
@@ -229,10 +261,16 @@ class AnomalyDetector:
             return [a for a in self.alerts if a.project == project]
         return list(self.alerts)
 
+    def close(self) -> None:
+        """Perform a clean SQLite checkpoint and flush for graceful shutdown."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.commit()
+
     def reset(self) -> None:
-        """Clear memory cache and SQLite tables for test isolation."""
+        """Clear memory cache, SQLite tables, and notifier for test isolation."""
         self.history.clear()
         self.alerts.clear()
+        self.notifier.reset()
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute("DELETE FROM cost_readings")

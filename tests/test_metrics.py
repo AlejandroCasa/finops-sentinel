@@ -89,8 +89,7 @@ def test_metrics_tracked_on_telemetry_ingestion() -> None:
     assert expected_gauge_cluster in content
 
     expected_gauge_storage = (
-        'finops_service_cost_amount_gauge{currency="USD",'
-        'service="object-storage"} 45.5'
+        'finops_service_cost_amount_gauge{currency="USD",service="object-storage"} 45.5'
     )
     assert expected_gauge_storage in content
 

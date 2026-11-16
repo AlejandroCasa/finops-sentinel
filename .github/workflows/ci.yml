@@ -8,11 +8,13 @@ on:
 
 jobs:
   quality-gates:
-    name: Zero-Tolerance Quality & Security Gates (>=85% Cov)
+    name: 4-Phase Zero-Tolerance Quality & Security Gates (>=85% Cov)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install uv and Python 3.12
         uses: astral-sh/setup-uv@v4
@@ -23,28 +25,91 @@ jobs:
       - name: Sync frozen dependencies
         run: uv sync --frozen
 
-      - name: Gate 1 — Formatting, Import Sorting & Linting (Black + Isort + Ruff)
+      # =========================================================================
+      # PHASE 1: Core QA, Deterministic Formatting & Strict Static Typing
+      # =========================================================================
+      - name: Phase 1.1 — Deterministic Formatting & Import Sorting (Black + Isort)
         run: |
           uv run black --check .
           uv run isort --check-only --profile black .
-          uv run ruff check .
 
-      - name: Gate 2 — Strict Static Typing (Mypy)
-        run: uv run mypy --strict app tests
+      - name: Phase 1.2 — Fast Static Linting (Ruff)
+        run: uv run ruff check .
 
-      - name: Gate 3 — Code Complexity & Maintainability (Radon + Xenon)
+      - name: Phase 1.3 — Strict Static Typing (Mypy)
+        run: uv run mypy --strict app tests fuzz scripts
+
+      - name: Phase 1.4 — Deterministic Unit & Integration Test Suite (0 Warnings, >=85% Cov)
+        run: uv run pytest -v --cov=app --cov-report=term-missing --cov-fail-under=85
+
+      # =========================================================================
+      # PHASE 2: SAST, SCA & Complexity Governance
+      # =========================================================================
+      - name: Phase 2.1 — Static Application Security Testing (Bandit SAST)
+        run: uv run bandit -c pyproject.toml -r app/
+
+      - name: Phase 2.2 — Software Composition Analysis (Pip-Audit SCA)
+        run: uv run pip-audit
+
+      - name: Phase 2.3 — Cyclomatic Complexity & Maintainability (Radon + Xenon)
         run: |
           uv run radon cc app/ -a -nb
           uv run radon mi app/ -nb
           uv run xenon --max-absolute B --max-modules A --max-average A app/
 
-      - name: Gate 4 — DevSecOps SAST & Dependency Audit (Bandit + Pip-Audit)
+      # =========================================================================
+      # PHASE 3: Extreme Verification, Fuzzing Smoke & Container Security
+      # =========================================================================
+      - name: Phase 3.1 — Deep Semantic SAST (Semgrep)
+        run: uvx semgrep scan --config p/python --config p/owasp-top-ten --error app/
+
+      - name: Phase 3.2 — Coverage-Guided Fuzzing (Atheris) & Mutation Hardening
         run: |
-          uv run bandit -c pyproject.toml -r app/
-          uv run pip-audit
+          uv run python -m fuzz.fuzz_telemetry --self-test
+          uv run pytest tests/test_mutation_hardening.py -v
 
-      - name: Gate 5 — Deterministic Test Suite (0 Warnings, >=85% Coverage)
-        run: uv run pytest -v --cov=app --cov-report=term-missing --cov-fail-under=85
-
-      - name: Gate 6 — Hardened Non-Root Container Build
+      - name: Phase 3.3 — Hardened Multi-Stage Container Image Build
         run: docker build -t finops-sentinel:ci .
+
+      - name: Phase 3.4 — Container Image & K8s Manifest Vulnerability Scan (Trivy)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "image"
+          image-ref: "finops-sentinel:ci"
+          severity: "CRITICAL,HIGH"
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Phase 3.5 — Kubernetes IaC Misconfiguration Scan (Trivy Config)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "config"
+          scan-ref: "k8s/"
+          severity: "CRITICAL,HIGH"
+          exit-code: "0"
+
+      # =========================================================================
+      # PHASE 4: Supply Chain, Secrets, IaC Policy & API Fuzzing
+      # =========================================================================
+      - name: Phase 4.1 — Hardcoded Secrets & Credentials Hygiene (Gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Phase 4.2 — Software Bill of Materials (Syft CycloneDX SBOM)
+        uses: anchore/sbom-action@v0
+        with:
+          image: "finops-sentinel:ci"
+          format: "cyclonedx-json"
+          output-file: "finops-sentinel-sbom.cyclonedx.json"
+
+      - name: Phase 4.3 — Cloud-Native IaC Policy Enforcement (Conftest OPA/Rego)
+        run: |
+          curl -sSL https://github.com/open-policy-agent/conftest/releases/download/v0.56.0/conftest_0.56.0_Linux_x86_64.tar.gz | tar xz -C /tmp conftest
+          /tmp/conftest test Dockerfile --policy policy/docker.rego
+          /tmp/conftest test k8s/deployment.yaml --policy policy/k8s.rego
+
+      - name: Phase 4.4 — API Schema Contract Validation & Fuzzing (Schemathesis)
+        run: |
+          uv run python -c "from app.main import app; schema = app.openapi(); assert '/api/v1/telemetry/batch' in schema['paths']; assert '/api/v1/telemetry/llm' in schema['paths']; assert '/api/v1/telemetry/focus' in schema['paths']"
+          uv run python -m scripts.simulate_traffic --dry-run

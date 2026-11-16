@@ -46,7 +46,7 @@ repos:
 
       - id: mypy
         name: mypy (Strict Static Typing)
-        entry: uv run --no-sync mypy --strict app tests
+        entry: uv run --no-sync mypy --strict app tests fuzz scripts
         language: system
         types: [python]
         pass_filenames: false
