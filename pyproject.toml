@@ -5,12 +5,11 @@ description = "Cloud-native real-time cost anomaly detection microservice."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "fastapi>=0.162.0",
+    "fastapi>=0.115.0",
     "httpx>=0.28.1",
-    "pydantic>=2.14.2",
+    "pydantic>=2.10.0",
     "pydantic-settings>=2.0.0",
-    "pytest>=9.2.0",
-    "uvicorn[standard]>=0.54.0",
+    "uvicorn[standard]>=0.34.0",
 ]
 
 [project.scripts]
@@ -19,6 +18,22 @@ finops-sentinel = "finops_sentinel:main"
 [build-system]
 requires = ["uv_build>=0.13.6,<0.14.0"]
 build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "bandit[toml]>=1.8.0",
+    "black>=24.10.0",
+    "commitizen>=4.19.3",
+    "isort>=5.13.2",
+    "mypy>=1.14.0",
+    "pip-audit>=2.7.3",
+    "pre-commit>=4.7.0",
+    "pytest>=8.3.4",
+    "pytest-cov>=6.0.0",
+    "radon>=6.0.1",
+    "ruff>=0.9.0",
+    "xenon>=0.9.3",
+]
 
 [tool.uv]
 package = false
@@ -46,10 +61,6 @@ exclude_lines = [
     "if TYPE_CHECKING:",
 ]
 
-[tool.ruff]
-target-version = "py312"
-line-length = 88
-
 [tool.black]
 line-length = 88
 target-version = ["py312"]
@@ -58,8 +69,9 @@ target-version = ["py312"]
 profile = "black"
 line_length = 88
 
-[tool.bandit]
-exclude_dirs = ["tests", ".venv"]
+[tool.ruff]
+target-version = "py312"
+line-length = 88
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "N", "SIM", "RUF"]
@@ -69,21 +81,8 @@ python_version = "3.12"
 strict = true
 ignore_missing_imports = true
 
-[dependency-groups]
-dev = [
-    "bandit[toml]>=1.8.0",
-    "black>=24.10.0",
-    "commitizen>=4.19.3",
-    "isort>=5.13.2",
-    "mypy>=1.14.0",
-    "pip-audit>=2.7.3",
-    "pre-commit>=4.7.0",
-    "pytest-cov>=6.0.0",
-    "radon>=6.0.1",
-    "ruff>=0.9.0",
-    "xenon>=0.9.3",
-]
-
+[tool.bandit]
+exclude_dirs = ["tests", ".venv"]
 
 [tool.commitizen]
 name = "cz_conventional_commits"

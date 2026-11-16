@@ -134,6 +134,10 @@ def test_baseline_poisoning_protection() -> None:
     assert data["historical_mean"] == pytest.approx(100.0)
     assert data["deviation_percentage"] == pytest.approx(20.0)
     assert data["is_anomaly"] is False
+    # History must contain 3 baseline readings plus 1 normal reading (no anomaly)
+    key = ("default", "prod", service)
+    assert len(detector.history[key]) == 4
+    assert 200.0 not in detector.history[key]
 
 
 def test_multi_tenant_isolation() -> None:
