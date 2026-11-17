@@ -39,7 +39,7 @@ app = FastAPI(
         "Real-time cloud cost anomaly detection microservice "
         "with multi-tenant isolation, batch ingestion, and LLM cost estimation."
     ),
-    version="0.4.0",
+    version="1.0.0",
     lifespan=lifespan,
 )
 
