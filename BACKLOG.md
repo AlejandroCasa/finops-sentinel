@@ -1,19 +1,19 @@
-# Technical Backlog & Architecture Roadmap — FinOps Sentinel
+# Technical Backlog & Architecture Roadmap — FinOps Sentinel (`v1.0.0` — Closed)
 
-This file tracks prioritized engineering improvements, technical debt, and completed milestones for **FinOps Sentinel**.
+This file tracks the completed engineering roadmap and architectural closure for **FinOps Sentinel**.
 
-## 🎯 Prioritized Backlog (Sprint 2026-W48)
+## 🏁 Project Closure Status (`v1.0.0` — Final Release)
+**FinOps Sentinel** has reached `100%` of its planned architectural scope (`v1.0.0`, `100.00%` test & branch coverage, `0` warnings, Complexity Rank `A`, and 4-Phase DevSecOps verification) and is officially **closed/completed** as a production-grade reference microservice (`[[ADR-0020-finops-sentinel-v1-project-closure]]`).
 
-### P1 — Cloud Provider Adapters & Budget Governance
-- [ ] **[budgets-api]** Dynamic Per-Project Budget Management API (`PUT /api/v1/guard/{project}/budget`): Allow platform teams to configure custom spending limits and anomaly thresholds per tenant dynamically in SQLite (Impact: 5/5 | Effort: S)
-- [ ] **[grafana]** Preconfigured Grafana Dashboard & Prometheus Alertmanager Rules: Add declarative JSON dashboard manifests and Alertmanager YAML rules for `finops_telemetry_ingested_total`, `finops_anomalies_detected_total`, and `finops_service_cost_amount_gauge` (Impact: 4/5 | Effort: S)
-
-### P2 — Cloud Billing Exporter Connectors
-- [ ] **[connectors]** Cloud Billing Exporter Connectors: Native pull adapters for AWS Cost & Usage Report (CUR 2.0 / FOCUS) and Azure Cost Management exports (Impact: 5/5 | Effort: M)
+### 📦 Deferred Out-of-Scope Extensions (Archived)
+- **[budgets-api]** Dynamic Per-Project Budget Management API (`PUT /api/v1/guard/{project}/budget`): Archived at `v1.0.0` closure in favor of declarative environment configuration (`FINOPS_BUDGET_DEFAULT_LIMIT`) to preserve single-binary stateless simplicity.
+- **[grafana]** Preconfigured Grafana Dashboard & Prometheus Alertmanager Rules: Metrics exposition (`GET /metrics`) is complete; dashboard provisioning is delegated to cluster-level observability stacks.
+- **[connectors]** Cloud Billing Exporter Connectors: Native FinOps FOCUS™ 1.0 ingestion (`POST /api/v1/telemetry/focus`) already provides vendor-neutral compatibility without coupling the core engine to provider-specific SDKs.
 
 ---
 
 ## ✅ Completed Milestones
+- [x] **[release/v1.0.0]** Official Project Closure & `v1.0.0` Production Release: Frozen public API contracts, documentation audit, and 3-part LinkedIn CTO retrospective series with Taste Editorial SVG vector diagrams (`[[ADR-0020-finops-sentinel-v1-project-closure]]`) (`2026-11-16`)
 - [x] **[focus/detector/resilience/fuzzing]** FinOps FOCUS™ 1.0 Ingestion, Configurable Statistical Detection (`Z-Score` & `EWMA`), Graceful Shutdown, Traffic Simulator & Extreme Verification (`atheris`, `mutmut`, `codeql`, `conftest` OPA/Rego): Added `POST /api/v1/telemetry/focus`, `percentage`/`zscore`/`ewma` strategies via `pydantic-settings`, FastAPI `lifespan` SQLite draining, `scripts/simulate_traffic.py`, coverage-guided fuzzing harness (`fuzz/fuzz_telemetry.py`), mutation hardening suite (`tests/test_mutation_hardening.py` with `100.00%` coverage), OPA policies (`policy/docker.rego`, `policy/k8s.rego`), and `.github/workflows/codeql.yml` (`[[ADR-0019-finops-sentinel-focus-statistical-resilience-and-fuzzing]]`) — Branch: `feat/focus-statistical-resilience-and-fuzzing` (`2026-11-16`)
 - [x] **[ingestion/llm/webhooks]** Batch Ingestion, LLM Token Cost Calculator & Push Webhook Alerts: Added `POST /api/v1/telemetry/batch` (bulk evaluation 1-500 records), `POST /api/v1/telemetry/llm` (deterministic token-to-USD pricing for GPT-4o, Claude 3.5, Gemini 2.5), and `WebhookNotifier` with per-service anti-spam cooldown window (`[[ADR-0016-finops-sentinel-batch-llm-ingestion-and-webhooks]]`) — Branch: `feat/batch-llm-ingestion-and-webhooks` (`2026-11-16`)
 - [x] **[ci/universal-4-phase]** Universal 4-Phase CI/CD Pipeline Standard: Full expansion of `.github/workflows/ci.yml` across Phase 1 (QA/Typing), Phase 2 (SAST/SCA/Complexity), Phase 3 (Extreme Verification/Semgrep/Trivy), and Phase 4 (Supply Chain/Gitleaks/Syft SBOM/IaC/Schemathesis) — Branch: `feat/batch-llm-ingestion-and-webhooks` (`2026-11-16`)

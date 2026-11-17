@@ -1,6 +1,8 @@
-# FinOps Sentinel 🛡️💸
+# FinOps Sentinel 🛡️💸 (`v1.0.0` — Final Release)
 
 A lightweight, cloud-native **Cloud & LLM Cost Anomaly Detection** microservice built with **Python 3.12**, **FastAPI**, **Pydantic v2**, and **uv**.
+
+> **Project Status**: **Completed / Production Reference (`v1.0.0`)**. All planned FinOps capabilities (Single/Batch/LLM/FOCUS™ 1.0 ingestion, Configurable Statistical Baselines, Budget Guard Circuit Breaker, SQLite persistence, Webhook Anti-Spam, Prometheus `/metrics`, and 4-Phase Extreme DevSecOps Verification) are delivered and frozen.
 
 FinOps Sentinel ingests real-time cost telemetry events across cloud providers, LLM inference pipelines, and **FinOps FOCUS™ 1.0** billing exports, establishes per-project/environment/service rolling baselines with embedded SQLite persistence, and detects anomalous budget spikes using configurable statistical strategies before billing cycles close.
 
