@@ -59,7 +59,7 @@ class WebhookNotifier:
                 data=data,
                 headers={
                     "Content-Type": "application/json",
-                    "User-Agent": "FinOps-Sentinel/0.2.0",
+                    "User-Agent": "FinOps-Sentinel/1.0.0",
                 },
                 method="POST",
             )
